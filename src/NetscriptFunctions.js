@@ -34,11 +34,12 @@ import {Server, getServer, AddToAllServers,
         GetServerByHostname}                        from "./Server";
 import {Settings}                                   from "./Settings";
 import {SpecialServerIps}                           from "./SpecialServerIps";
+import {Stock}                                      from "./Stock";
 import {StockMarket, StockSymbols, SymbolToStockMap, initStockSymbols,
         initStockMarket, initSymbolToStockMap, stockMarketCycle, buyStock,
         sellStock, updateStockPrices, displayStockMarketContent,
         updateStockTicker, updateStockPlayerPosition,
-        Stock, shortStock, sellShort, OrderTypes,
+        shortStock, sellShort, OrderTypes,
         PositionTypes, placeOrder, cancelOrder}     from "./StockMarket";
 import {post}                                       from "./ui/postToTerminal";
 import {TextFile, getTextFile, createTextFile}      from "./TextFile";
@@ -1845,6 +1846,25 @@ function NetscriptFunctions(workerScript) {
                 return true;
             } else {
                 throw makeRuntimeRejectMsg(workerScript, "Invalid argument passed in for write: " + port);
+            }
+        },
+        tryWrite : function(port, data="") {
+            if (workerScript.checkingRam) {
+                return updateStaticRam("tryWrite", CONSTANTS.ScriptReadWriteRamCost);
+            }
+            updateDynamicRam("tryWrite", CONSTANTS.ScriptReadWriteRamCost);
+            if (!isNaN(port)) {
+                port = Math.round(port);
+                if (port < 1 || port > CONSTANTS.NumNetscriptPorts) {
+                    throw makeRuntimeRejectMsg(workerScript, "ERROR: tryWrite() called on invalid port: " + port + ". Only ports 1-" + CONSTANTS.NumNetscriptPorts + " are valid.");
+                }
+                var port = NetscriptPorts[port-1];
+                if (port == null || !(port instanceof NetscriptPort)) {
+                    throw makeRuntimeRejectMsg(workerScript, "Could not find port: " + port + ". This is a bug contact the game developer");
+                }
+                return port.tryWrite(data);
+            } else {
+                throw makeRuntimeRejectMsg(workerScript, "Invalid argument passed in for tryWrite: " + port);
             }
         },
         read : function(port) {
